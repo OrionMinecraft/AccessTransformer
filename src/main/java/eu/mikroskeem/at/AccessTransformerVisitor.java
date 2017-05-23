@@ -28,6 +28,21 @@ public class AccessTransformerVisitor extends ClassVisitor {
         currentClassAccessTransforms = accessTransforms.stream()
                 .filter(ate -> ate.getClassName().equals(currentClass))
                 .collect(Collectors.toList());
+
+        /* Transform class access */
+        for (AccessTransformEntry ate : currentClassAccessTransforms) {
+            if(ate.isClassAt()) {
+                access = AccessLevel.overrideAccessLevel(access, ate.getAccessLevel());
+                for (Modifiers.ModifierEntry entry : ate.getModifiers()) {
+                    if(entry.isRemove()) {
+                        access &= ~entry.getModifier().getOpcode();
+                    } else {
+                        access |= entry.getModifier().getOpcode();
+                    }
+                }
+                break;
+            }
+        }
         super.visit(version, access, name, signature, superName, interfaces);
     }
 

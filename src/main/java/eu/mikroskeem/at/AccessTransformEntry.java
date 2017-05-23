@@ -24,10 +24,12 @@ public class AccessTransformEntry {
     private final String className;
     private final String descriptor;
     private final boolean method;
+    private final boolean classAt;
 
     public AccessTransformEntry(String rawAtEntry) {
         String[] atEntry = rawAtEntry.split(" ");
         String[] modifiers = atEntry[0].split("(?=[-+])");
+        classAt = atEntry.length == 2;
         this.accessLevel = AccessLevel.BY_NAME.get(modifiers[0]);
         this.modifiers = Stream.of(Arrays.copyOfRange(modifiers, 1, modifiers.length)).map(entry -> {
             Modifiers modifier = Modifiers.BY_NAME.get(entry.substring(1));
@@ -39,7 +41,13 @@ public class AccessTransformEntry {
             return new Modifiers.ModifierEntry(action == '-', modifier);
         }).collect(Collectors.toList());
         this.className = atEntry[1];
-        this.descriptor = atEntry[2];
+        this.descriptor = classAt? "" : atEntry[2];
+
+        /* If it is class AT, then return */
+        if(classAt) {
+            method = false;
+            return;
+        }
 
         /* Check if transform entry is for method or field */
         int start = descriptor.indexOf('(');

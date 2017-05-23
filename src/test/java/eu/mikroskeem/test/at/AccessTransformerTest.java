@@ -25,15 +25,7 @@ public class AccessTransformerTest {
     @Test
     @SuppressWarnings("ConstantConditions")
     public void testFieldAccessTransformer() throws Exception {
-        AccessTransformer at = new AccessTransformer();
-        loadAt(at, "test_field_at.cfg");
-
-        /* Read class and transform it */
-        byte[] clazz = at.transformClass(getClass(TestClass1.class));
-
-        /* Load class */
-        URLClassLoader newUcl = URLClassLoader.newInstance(new URL[0], null);
-        Class<?> newClass = ClassLoaderTools.defineClass(newUcl, TestClass1.class.getName(), clazz);
+        Class<?> newClass = transform("test_field_at.cfg", TestClass1.class);
         ClassWrapper<?> cw = Reflect.wrapClass(newClass);
 
         /* Do assertions */
@@ -45,15 +37,7 @@ public class AccessTransformerTest {
 
     @Test
     public void testMethodAccessTransformer() throws Exception {
-        AccessTransformer at = new AccessTransformer();
-        loadAt(at, "test_method_at.cfg");
-
-        /* Read class and transform it */
-        byte[] clazz = at.transformClass(getClass(TestClass1.class));
-
-        /* Load class */
-        URLClassLoader newUcl = URLClassLoader.newInstance(new URL[0], null);
-        Class<?> newClass = ClassLoaderTools.defineClass(newUcl, TestClass1.class.getName(), clazz);
+        Class<?> newClass = transform("test_method_at.cfg", TestClass1.class);
 
         /* Do assertions */
         Assertions.assertTrue(Modifier.isPublic(newClass.getConstructor(long.class).getModifiers()),
@@ -64,15 +48,7 @@ public class AccessTransformerTest {
 
     @Test
     public void testWildcardFinalRemoveAccessTransformer() throws Exception {
-        AccessTransformer at = new AccessTransformer();
-        loadAt(at, "test_wildcard_final_remove_at.cfg");
-
-        /* Read class and transform it */
-        byte[] clazz = at.transformClass(getClass(TestClass1.class));
-
-        /* Load class */
-        URLClassLoader newUcl = URLClassLoader.newInstance(new URL[0], null);
-        Class<?> newClass = ClassLoaderTools.defineClass(newUcl, TestClass1.class.getName(), clazz);
+        Class<?> newClass = transform("test_wildcard_final_remove_at.cfg", TestClass1.class);
 
         /* Do assertions */
         List<FieldWrapper<?>> fields = Reflect.wrapClass(newClass).getFields();
@@ -87,15 +63,7 @@ public class AccessTransformerTest {
     @Test
     @Disabled("testWildcardFinalAddAccessTransformer: Adding final to field isn't working for unknown reasons, test disabled")
     public void testWildcardFinalAddAccessTransformer() throws Exception {
-        AccessTransformer at = new AccessTransformer();
-        loadAt(at, "test_wildcard_final_add_at.cfg");
-
-        /* Read class and transform it */
-        byte[] clazz = at.transformClass(getClass(TestClass1.class));
-
-        /* Load class */
-        URLClassLoader newUcl = URLClassLoader.newInstance(new URL[0], null);
-        Class<?> newClass = ClassLoaderTools.defineClass(newUcl, TestClass1.class.getName(), clazz);
+        Class<?> newClass = transform("test_wildcard_final_add_at.cfg", TestClass1.class);
 
         /* Do assertions */
         List<FieldWrapper<?>> fields = Reflect.wrapClass(newClass).getFields();
@@ -107,10 +75,33 @@ public class AccessTransformerTest {
         });
     }
 
+    @Test
+    public void testClassAccessTransformer() throws Exception {
+        Class<?> newClass = transform("test_class_at.cfg", TestClass2.class);
+
+        Assertions.assertFalse(Modifier.isFinal(newClass.getModifiers()), "Class shouldn't be final after transform");
+        Assertions.assertFalse(Modifier.isPublic(newClass.getModifiers()), "Class should be package-local after transform");
+    }
+
     /* Utils */
-    private void loadAt(AccessTransformer at, String file) throws IOException {
+    private AccessTransformer setupAt(String file) throws IOException {
+        AccessTransformer at = new AccessTransformer();
         BufferedReader br = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream("/" + file)));
         at.loadAccessTransformers(br);
+        return at;
+    }
+
+    private Class<?> transformAndLoad(AccessTransformer at, Class<?> clazz) throws IOException {
+        /* Read class and transform it */
+        byte[] clazzData = at.transformClass(getClass(clazz));
+
+        /* Load class */
+        URLClassLoader newUcl = URLClassLoader.newInstance(new URL[0], null);
+        return ClassLoaderTools.defineClass(newUcl, clazz.getName(), clazzData);
+    }
+
+    private Class<?> transform(String atFile, Class<?> clazz) throws IOException {
+        return transformAndLoad(setupAt(atFile), clazz);
     }
 
     private byte[] getClass(Class<?> clazz) throws IOException {
