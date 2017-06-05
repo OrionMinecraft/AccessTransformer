@@ -47,6 +47,24 @@ public class AccessTransformerTest {
     }
 
     @Test
+    public void testMethodFinalAddAccessTransformer() throws Exception {
+        Class<?> newClass = transform("test_method_final_add_at.cfg", TestClass1.class);
+
+        /* Do assertions */
+        Assertions.assertTrue(Modifier.isFinal(newClass.getDeclaredMethod("h", String.class).getModifiers()),
+                "Method h should be final!");
+    }
+
+    @Test
+    public void testMethodFinalRemoveAccessTransformer() throws Exception {
+        Class<?> newClass = transform("test_method_final_remove_at.cfg", TestClass3.class);
+
+        /* Do assertions */
+        Assertions.assertFalse(Modifier.isFinal(newClass.getDeclaredMethod("h", String.class).getModifiers()),
+                "Method h should not be final!");
+    }
+
+    @Test
     public void testWildcardFinalRemoveAccessTransformer() throws Exception {
         Class<?> newClass = transform("test_wildcard_final_remove_at.cfg", TestClass1.class);
 
