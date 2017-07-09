@@ -1,7 +1,5 @@
-package eu.mikroskeem.at.access;
+package eu.mikroskeem.orion.at.access;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.Contract;
 import org.objectweb.asm.Opcodes;
 
@@ -14,8 +12,6 @@ import java.util.Map;
  *
  * @author Mark Vainomaa
  */
-@RequiredArgsConstructor
-@Getter
 public enum AccessLevel {
     PRIVATE("private", Opcodes.ACC_PRIVATE),
     PACKAGE_LOCAL("default", 0),
@@ -28,13 +24,50 @@ public enum AccessLevel {
     /** Access level opcode */
     private final int opcode;
 
+    /**
+     * {@link AccessLevel} enum constructor
+     *
+     * @param name Access level name
+     * @param opcode Access level opcode, see {@link Opcodes}
+     */
+    AccessLevel(String name, int opcode) {
+        this.name = name;
+        this.opcode = opcode;
+    }
+
+    /**
+     * Gets access level name
+     *
+     * @return Access level name
+     */
+    @Contract(pure = true)
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Gets opcode value
+     *
+     * @return Opcode value
+     */
+    @Contract(pure = true)
+    public int getOpcode() {
+        return opcode;
+    }
+
     /** Static list of opcodes mapped to enum keys */
     public final static Map<Integer, AccessLevel> BY_OPCODE;
 
     /** Static list of opcode names mapped to enum keys */
     public final static Map<String, AccessLevel> BY_NAME;
 
-    /** Override access level */
+    /**
+     * Overrides class/method/field access level by {@link AccessLevel}
+     *
+     * @param accessLevel Original class/method/field access level
+     * @param newAccessLevel {@link AccessLevel} to apply on given class/method/field access level
+     * @return New class/method/field access level
+     */
     @Contract(pure = true)
     public static int overrideAccessLevel(int accessLevel, AccessLevel newAccessLevel) {
         int mask = Opcodes.ACC_PUBLIC | Opcodes.ACC_PROTECTED | Opcodes.ACC_PRIVATE;
@@ -44,13 +77,13 @@ public enum AccessLevel {
     }
 
     static {
-        BY_OPCODE = Collections.unmodifiableMap(new HashMap<Integer, AccessLevel>(){{
+        BY_OPCODE = Collections.unmodifiableMap(new HashMap<Integer, AccessLevel>() {{
             for (AccessLevel value : AccessLevel.values()) {
                 put(value.opcode, value);
             }
         }});
 
-        BY_NAME = Collections.unmodifiableMap(new HashMap<String, AccessLevel>(){{
+        BY_NAME = Collections.unmodifiableMap(new HashMap<String, AccessLevel>() {{
             for (AccessLevel value : AccessLevel.values()) {
                 put(value.name, value);
             }

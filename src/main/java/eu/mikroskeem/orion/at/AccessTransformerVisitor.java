@@ -1,7 +1,7 @@
-package eu.mikroskeem.at;
+package eu.mikroskeem.orion.at;
 
-import eu.mikroskeem.at.access.AccessLevel;
-import eu.mikroskeem.at.access.Modifiers;
+import eu.mikroskeem.orion.at.access.AccessLevel;
+import eu.mikroskeem.orion.at.access.Modifier;
 import org.objectweb.asm.*;
 
 import java.util.List;
@@ -12,12 +12,12 @@ import java.util.stream.Collectors;
  *
  * @author Mark Vainomaa
  */
-public class AccessTransformerVisitor extends ClassVisitor {
+final class AccessTransformerVisitor extends ClassVisitor {
     private final List<AccessTransformEntry> accessTransforms;
     private String currentClass;
     private List<AccessTransformEntry> currentClassAccessTransforms;
 
-    public AccessTransformerVisitor(List<AccessTransformEntry> accessTransforms, ClassVisitor classVisitor) {
+    AccessTransformerVisitor(List<AccessTransformEntry> accessTransforms, ClassVisitor classVisitor) {
         super(Opcodes.ASM5, classVisitor);
         this.accessTransforms = accessTransforms;
     }
@@ -33,7 +33,7 @@ public class AccessTransformerVisitor extends ClassVisitor {
         for (AccessTransformEntry ate : currentClassAccessTransforms) {
             if(ate.isClassAt()) {
                 access = AccessLevel.overrideAccessLevel(access, ate.getAccessLevel());
-                for (Modifiers.ModifierEntry entry : ate.getModifiers()) {
+                for (Modifier.ModifierEntry entry : ate.getModifiers()) {
                     if(entry.isRemove()) {
                         access &= ~entry.getModifier().getOpcode();
                     } else {
@@ -51,14 +51,13 @@ public class AccessTransformerVisitor extends ClassVisitor {
         /* Iterate through all AT entries */
         for(AccessTransformEntry ate: currentClassAccessTransforms) {
             /* Check if AT entry is for given field or if it is wildcard instead */
-            if((!ate.isMethod() && (name.equals(ate.getDescriptor()))) || ate.getDescriptor().equals("*")) {
+            if(!ate.isMethod() && (ate.getDescriptor().equals("*") || name.equals(ate.getDescriptor()))) {
                 access = AccessLevel.overrideAccessLevel(access, ate.getAccessLevel());
-                for (Modifiers.ModifierEntry entry : ate.getModifiers()) {
-                    if(entry.isRemove()) {
+                for (Modifier.ModifierEntry entry : ate.getModifiers()) {
+                    if(entry.isRemove())
                         access &= ~entry.getModifier().getOpcode();
-                    } else {
+                    else
                         access |= entry.getModifier().getOpcode();
-                    }
                 }
                 break;
             }
@@ -74,15 +73,14 @@ public class AccessTransformerVisitor extends ClassVisitor {
             if(name.equals("<clinit>")) break;
 
             /* Check if AT entry is for given method or if it is wildcard instead */
-            if((ate.isMethod() && ((name + desc).equals(ate.getDescriptor()))) || ate.getDescriptor().equals("*")) {
+            if(ate.isMethod() && (ate.getDescriptor().equals("*") || (name + desc).equals(ate.getDescriptor()))) {
                 access = AccessLevel.overrideAccessLevel(access, ate.getAccessLevel());
                 if(name.equals("<init>")) break;
-                for (Modifiers.ModifierEntry entry : ate.getModifiers()) {
-                    if(entry.isRemove()) {
+                for (Modifier.ModifierEntry entry : ate.getModifiers()) {
+                    if(entry.isRemove())
                         access &= ~entry.getModifier().getOpcode();
-                    } else {
+                    else
                         access |= entry.getModifier().getOpcode();
-                    }
                 }
                 break;
             }

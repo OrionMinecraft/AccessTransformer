@@ -1,13 +1,12 @@
-package eu.mikroskeem.test.at;
+package eu.mikroskeem.test.orion.at;
 
-import eu.mikroskeem.at.AccessTransformer;
+import eu.mikroskeem.orion.at.AccessTransformer;
 import eu.mikroskeem.shuriken.instrumentation.ClassLoaderTools;
 import eu.mikroskeem.shuriken.instrumentation.ClassTools;
+import eu.mikroskeem.shuriken.reflect.ClassWrapper;
+import eu.mikroskeem.shuriken.reflect.FieldWrapper;
 import eu.mikroskeem.shuriken.reflect.Reflect;
-import eu.mikroskeem.shuriken.reflect.wrappers.ClassWrapper;
-import eu.mikroskeem.shuriken.reflect.wrappers.FieldWrapper;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.util.TraceClassVisitor;
@@ -31,7 +30,7 @@ public class AccessTransformerTest {
         /* Do assertions */
         int aModifiers = cw.getField("a", String.class).get().getField().getModifiers();
         int bModifiers = cw.getField("b", String.class).get().getField().getModifiers();
-        Assertions.assertTrue(Modifier.isProtected(aModifiers), "Field a must be protected!");
+        Assertions.assertTrue(Modifier.isPublic(aModifiers), "Field a must be public!");
         Assertions.assertTrue(Modifier.isPublic(bModifiers), "Field b must be public!");
     }
 
@@ -44,15 +43,6 @@ public class AccessTransformerTest {
                 "Constructor with long as parameter should be public!");
         Assertions.assertTrue(Modifier.isPublic(newClass.getDeclaredMethod("h", String.class).getModifiers()),
                 "Method h should be public!");
-    }
-
-    @Test
-    public void testMethodFinalAddAccessTransformer() throws Exception {
-        Class<?> newClass = transform("test_method_final_add_at.cfg", TestClass1.class);
-
-        /* Do assertions */
-        Assertions.assertTrue(Modifier.isFinal(newClass.getDeclaredMethod("h", String.class).getModifiers()),
-                "Method h should be final!");
     }
 
     @Test
@@ -71,25 +61,10 @@ public class AccessTransformerTest {
         /* Do assertions */
         List<FieldWrapper<?>> fields = Reflect.wrapClass(newClass).getFields();
         fields.forEach(fieldWrapper -> {
-            Assertions.assertTrue(Modifier.isPrivate(fieldWrapper.getField().getModifiers()),
-                    String.format("Field %s should be private", fieldWrapper.getField().getName()));
-            Assertions.assertFalse(Modifier.isFinal(fieldWrapper.getField().getModifiers()),
-                    String.format("Field %s should not be final", fieldWrapper.getField().getName()));
-        });
-    }
-
-    @Test
-    @Disabled("testWildcardFinalAddAccessTransformer: Adding final to field isn't working for unknown reasons, test disabled")
-    public void testWildcardFinalAddAccessTransformer() throws Exception {
-        Class<?> newClass = transform("test_wildcard_final_add_at.cfg", TestClass1.class);
-
-        /* Do assertions */
-        List<FieldWrapper<?>> fields = Reflect.wrapClass(newClass).getFields();
-        fields.forEach(fieldWrapper -> {
             Assertions.assertTrue(Modifier.isPublic(fieldWrapper.getField().getModifiers()),
                     String.format("Field %s should be public", fieldWrapper.getField().getName()));
-            Assertions.assertTrue(Modifier.isFinal(fieldWrapper.getField().getModifiers()),
-                    String.format("Field %s should be final", fieldWrapper.getField().getName()));
+            Assertions.assertFalse(Modifier.isFinal(fieldWrapper.getField().getModifiers()),
+                    String.format("Field %s should not be final", fieldWrapper.getField().getName()));
         });
     }
 
@@ -98,7 +73,7 @@ public class AccessTransformerTest {
         Class<?> newClass = transform("test_class_at.cfg", TestClass2.class);
 
         Assertions.assertFalse(Modifier.isFinal(newClass.getModifiers()), "Class shouldn't be final after transform");
-        Assertions.assertFalse(Modifier.isPublic(newClass.getModifiers()), "Class should be package-local after transform");
+        Assertions.assertTrue(Modifier.isPublic(newClass.getModifiers()), "Class should be public after transform");
     }
 
     /* Utils */

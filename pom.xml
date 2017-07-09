@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>eu.mikroskeem</groupId>
-    <artifactId>at</artifactId>
+    <artifactId>orion.at</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
@@ -142,13 +142,6 @@
             <version>5.2</version>
         </dependency>
 
-        <!-- Instrumentation tools -->
-        <dependency>
-            <groupId>eu.mikroskeem</groupId>
-            <artifactId>shuriken.instrumentation</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
-
         <!-- JetBrains annotations -->
         <dependency>
             <groupId>org.jetbrains</groupId>
@@ -156,19 +149,19 @@
             <version>15.0</version>
         </dependency>
 
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.16.16</version>
-            <scope>provided</scope>
-        </dependency>
-
         <!-- JUnit 5 -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <version>5.0.0-M4</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Instrumentation tools -->
+        <dependency>
+            <groupId>eu.mikroskeem</groupId>
+            <artifactId>shuriken.instrumentation</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
