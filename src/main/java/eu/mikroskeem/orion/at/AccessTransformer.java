@@ -1,6 +1,7 @@
 package eu.mikroskeem.orion.at;
 
-import org.jetbrains.annotations.Nullable;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
@@ -26,6 +27,7 @@ public final class AccessTransformer {
      *
      * @return List of {@link AccessTransformEntry} objects
      */
+    @NonNull
     public List<AccessTransformEntry> getAtEntries() {
         return atEntries;
     }
@@ -36,7 +38,7 @@ public final class AccessTransformer {
      * @param reader {@link BufferedReader} instance
      * @throws IOException if {@link BufferedReader} throws {@link IOException}
      */
-    public void loadAccessTransformers(BufferedReader reader) throws IOException {
+    public void loadAccessTransformers(@NonNull BufferedReader reader) throws IOException {
         reader.lines().map(this::processLine).filter(Objects::nonNull).forEach(atEntries::add);
     }
 
@@ -46,7 +48,7 @@ public final class AccessTransformer {
      * @param inputStream {@link InputStream} instance
      * @throws IOException if {@link InputStream} throws {@link IOException}
      */
-    public void loadAccessTransformers(InputStream inputStream) throws IOException {
+    public void loadAccessTransformers(@NonNull InputStream inputStream) throws IOException {
         try(BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream))) {
             loadAccessTransformers(bufferedReader);
         }
@@ -56,7 +58,7 @@ public final class AccessTransformer {
      * Loads access transformer entry from string (must be single line)
      * @param atLine Raw AT entry
      */
-    public void loadAccessTransformer(String atLine) {
+    public void loadAccessTransformer(@NonNull String atLine) {
         atEntries.add(Objects.requireNonNull(processLine(atLine), "Invalid AT entry: " + atLine));
     }
 
@@ -81,7 +83,7 @@ public final class AccessTransformer {
      * @return Parsed line or null, either if it was blank line or comment line
      */
     @Nullable
-    private AccessTransformEntry processLine(String rawAtEntry) {
+    private AccessTransformEntry processLine(@NonNull String rawAtEntry) {
         /* It is a comment! */
         if(rawAtEntry.startsWith("#"))
             return null;

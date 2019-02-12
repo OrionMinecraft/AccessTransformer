@@ -1,6 +1,6 @@
 package eu.mikroskeem.orion.at.access;
 
-import org.jetbrains.annotations.Contract;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Collections;
@@ -40,7 +40,7 @@ public enum AccessLevel {
      *
      * @return Access level name
      */
-    @Contract(pure = true)
+    @NonNull
     public String getName() {
         return name;
     }
@@ -50,7 +50,6 @@ public enum AccessLevel {
      *
      * @return Opcode value
      */
-    @Contract(pure = true)
     public int getOpcode() {
         return opcode;
     }
@@ -68,7 +67,6 @@ public enum AccessLevel {
      * @param newAccessLevel {@link AccessLevel} to apply on given class/method/field access level
      * @return New class/method/field access level
      */
-    @Contract(pure = true)
     public static int overrideAccessLevel(int accessLevel, AccessLevel newAccessLevel) {
         int mask = Opcodes.ACC_PUBLIC | Opcodes.ACC_PROTECTED | Opcodes.ACC_PRIVATE;
         accessLevel &= ~mask;
@@ -77,16 +75,17 @@ public enum AccessLevel {
     }
 
     static {
-        BY_OPCODE = Collections.unmodifiableMap(new HashMap<Integer, AccessLevel>() {{
-            for (AccessLevel value : AccessLevel.values()) {
-                put(value.opcode, value);
-            }
-        }});
+        Map<Integer, AccessLevel> byOpcode;
+        Map<String, AccessLevel> byName;
+        BY_OPCODE = Collections.unmodifiableMap((byOpcode = new HashMap<>(AccessLevel.values().length)));
+        BY_NAME = Collections.unmodifiableMap((byName  = new HashMap<>(AccessLevel.values().length)));
 
-        BY_NAME = Collections.unmodifiableMap(new HashMap<String, AccessLevel>() {{
-            for (AccessLevel value : AccessLevel.values()) {
-                put(value.name, value);
-            }
-        }});
+        for (AccessLevel value : AccessLevel.values()) {
+            byOpcode.put(value.opcode, value);
+        }
+
+        for (AccessLevel value : AccessLevel.values()) {
+            byName.put(value.name, value);
+        }
     }
 }

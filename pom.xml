@@ -124,13 +124,6 @@
                 </executions>
             </plugin>
         </plugins>
-        <resources>
-            <!-- Resource filtering -->
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
         <defaultGoal>clean compile test install</defaultGoal>
     </build>
 
@@ -142,11 +135,12 @@
             <version>5.2</version>
         </dependency>
 
-        <!-- JetBrains annotations -->
+        <!-- Nullability annotations -->
         <dependency>
-            <groupId>org.jetbrains</groupId>
-            <artifactId>annotations</artifactId>
-            <version>15.0</version>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+            <version>2.6.0</version>
+            <optional>true</optional>
         </dependency>
 
         <!-- JUnit 5 -->

@@ -2,11 +2,11 @@ package eu.mikroskeem.orion.at;
 
 import eu.mikroskeem.orion.at.access.AccessLevel;
 import eu.mikroskeem.orion.at.access.Modifier;
-import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -16,9 +16,9 @@ import java.util.stream.Stream;
  * @author Mark Vainomaa
  */
 public final class AccessTransformEntry {
-    @NotNull private final AccessLevel accessLevel;
-    @NotNull private final List<Modifier.ModifierEntry> modifiers;
-    @NotNull private final String className;
+    @NonNull private final AccessLevel accessLevel;
+    @NonNull private final List<Modifier.ModifierEntry> modifiers;
+    @NonNull private final String className;
     private final String descriptor;
     private final boolean method;
     private final boolean classAt;
@@ -28,7 +28,7 @@ public final class AccessTransformEntry {
      *
      * @param rawAtEntry Raw AT entry line
      */
-    public AccessTransformEntry(@NotNull String rawAtEntry) {
+    public AccessTransformEntry(@NonNull String rawAtEntry) {
         String[] atEntry = rawAtEntry.split(" ");
         String[] modifiers = atEntry[0].split("(?=[-+])");
         classAt = atEntry.length == 2;
@@ -70,8 +70,7 @@ public final class AccessTransformEntry {
      *
      * @return Instance of {@link AccessLevel}
      */
-    @NotNull
-    @Contract(pure = true)
+    @NonNull
     public AccessLevel getAccessLevel() {
         return accessLevel;
     }
@@ -81,8 +80,7 @@ public final class AccessTransformEntry {
      *
      * @return List of {@link Modifier.ModifierEntry}
      */
-    @NotNull
-    @Contract(pure = true)
+    @NonNull
     public List<Modifier.ModifierEntry> getModifiers() {
         return modifiers;
     }
@@ -92,8 +90,7 @@ public final class AccessTransformEntry {
      *
      * @return Target class name
      */
-    @NotNull
-    @Contract(pure = true)
+    @NonNull
     public String getClassName() {
         return className;
     }
@@ -103,7 +100,7 @@ public final class AccessTransformEntry {
      *
      * @return Target method descriptor
      */
-    @Contract(pure = true)
+    @NonNull
     public String getDescriptor() {
         return descriptor;
     }
@@ -113,7 +110,6 @@ public final class AccessTransformEntry {
      *
      * @return Whether {@link AccessTransformEntry} targets method or not
      */
-    @Contract(pure = true)
     public boolean isMethod() {
         return method;
     }
@@ -123,7 +119,6 @@ public final class AccessTransformEntry {
      *
      * @return Whether {@link AccessTransformEntry} targets class or not
      */
-    @Contract(pure = true)
     public boolean isClassAt() {
         return classAt;
     }
@@ -147,7 +142,7 @@ public final class AccessTransformEntry {
             return false;
         if (!className.equals(that.className))
             return false;
-        return descriptor != null ? descriptor.equals(that.descriptor) : that.descriptor == null;
+        return Objects.equals(descriptor, that.descriptor);
     }
 
     @Override

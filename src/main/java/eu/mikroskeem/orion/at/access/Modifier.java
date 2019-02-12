@@ -1,6 +1,6 @@
 package eu.mikroskeem.orion.at.access;
 
-import org.jetbrains.annotations.Contract;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Collections;
@@ -37,7 +37,7 @@ public enum Modifier {
      *
      * @return Modifier name
      */
-    @Contract(pure = true)
+    @NonNull
     public String getName() {
         return name;
     }
@@ -47,7 +47,6 @@ public enum Modifier {
      *
      * @return Modifier opcode
      */
-    @Contract(pure = true)
     public int getOpcode() {
         return opcode;
     }
@@ -98,7 +97,6 @@ public enum Modifier {
          *
          * @return
          */
-        @Contract(pure = true)
         public boolean isRemove() {
             return remove;
         }
@@ -108,7 +106,6 @@ public enum Modifier {
          *
          * @return {@link Modifier} instance
          */
-        @Contract(pure = true)
         public Modifier getModifier() {
             return modifier;
         }

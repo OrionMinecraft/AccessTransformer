@@ -2,8 +2,11 @@ package eu.mikroskeem.orion.at;
 
 import eu.mikroskeem.orion.at.access.AccessLevel;
 import eu.mikroskeem.orion.at.access.Modifier;
-import org.jetbrains.annotations.Nullable;
-import org.objectweb.asm.*;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,14 +37,7 @@ final class AccessTransformerVisitor extends ClassVisitor {
         /* Transform class access */
         AccessTransformEntry ate = findClassAT(currentClass);
         if(ate != null) {
-            newAccess = AccessLevel.overrideAccessLevel(access, ate.getAccessLevel());
-            for (Modifier.ModifierEntry entry : ate.getModifiers()) {
-                if(entry.isRemove()) {
-                    newAccess &= ~entry.getModifier().getOpcode();
-                } else {
-                    newAccess |= entry.getModifier().getOpcode();
-                }
-            }
+            newAccess = getNewAccessModifier(newAccess, ate);
         }
         super.visit(version, newAccess, name, signature, superName, interfaces);
     }
@@ -53,13 +49,7 @@ final class AccessTransformerVisitor extends ClassVisitor {
         /* Transform field access */
         AccessTransformEntry ate = findFieldAT(currentClass, name);
         if(ate != null) {
-            newAccess = AccessLevel.overrideAccessLevel(access, ate.getAccessLevel());
-            for (Modifier.ModifierEntry entry : ate.getModifiers()) {
-                if (entry.isRemove())
-                    newAccess &= ~entry.getModifier().getOpcode();
-                else
-                    newAccess |= entry.getModifier().getOpcode();
-            }
+            newAccess = getNewAccessModifier(newAccess, ate);
         }
         return super.visitField(newAccess, name, desc, signature, value);
     }
@@ -68,17 +58,11 @@ final class AccessTransformerVisitor extends ClassVisitor {
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         int newAccess = access;
         AccessTransformEntry ate;
-        if(!name.equals("<clinit>") && (ate = findMethodAT(currentClass, name, desc)) != null) {
-            newAccess = AccessLevel.overrideAccessLevel(access, ate.getAccessLevel());
-            for (Modifier.ModifierEntry entry : ate.getModifiers()) {
-                if (entry.isRemove())
-                    newAccess &= ~entry.getModifier().getOpcode();
-                else
-                    newAccess |= entry.getModifier().getOpcode();
-            }
+        if(!"<clinit>".equals(name) && (ate = findMethodAT(currentClass, name, desc)) != null) {
+            newAccess = getNewAccessModifier(newAccess, ate);
 
             /* Apply opcode change, if given method was private and is normal method */
-            if(!desc.equals("<init>")
+            if(!"<init>".equals(desc)
                     && (access & Opcodes.ACC_PRIVATE) != 0
                     && (newAccess & Opcodes.ACC_PRIVATE) == 0) {
                 return new AccessTransformingMethodAdapter(
@@ -137,11 +121,11 @@ final class AccessTransformerVisitor extends ClassVisitor {
             if(!ownerClass.equals(ate.getClassName())) continue;
 
             /* If AT entry is wildcard, return given AT entry */
-            if(ate.getDescriptor().equals("*"))
+            if("*".equals(ate.getDescriptor()))
                 return ate;
 
             /* Return given AT entry if field name equal */
-            if(fieldName.equals(ate.getDescriptor()))
+            if(ate.getDescriptor().equals(fieldName))
                 return ate;
         }
 
@@ -168,12 +152,28 @@ final class AccessTransformerVisitor extends ClassVisitor {
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
             /* Replace INVOKESPECIAL with INVOKEVIRTUAL */
             if(!itf && opcode == Opcodes.INVOKESPECIAL
-                    && owner.equals(ownerClass.replace('.', '/'))
-                    && name.equals(methodName)
-                    && desc.equals(methodDesc)) {
+                    && ownerClass.replace('.', '/').equals(owner)
+                    && methodName.equals(name)
+                    && methodDesc.equals(desc)) {
                 opcode = Opcodes.INVOKEVIRTUAL;
             }
             super.visitMethodInsn(opcode, owner, name, desc, itf);
         }
+    }
+
+    /**
+     * Helper method to get new access modifier
+     */
+    private static int getNewAccessModifier(int original, AccessTransformEntry atEntry) {
+        int newAccess = AccessLevel.overrideAccessLevel(original, atEntry.getAccessLevel());
+        for (Modifier.ModifierEntry entry : atEntry.getModifiers()) {
+            if(entry.isRemove()) {
+                newAccess &= ~entry.getModifier().getOpcode();
+            } else {
+                newAccess |= entry.getModifier().getOpcode();
+            }
+        }
+
+        return newAccess;
     }
 }
