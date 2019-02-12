@@ -29,7 +29,7 @@ public final class AccessTransformEntry {
      * @param rawAtEntry Raw AT entry line
      */
     public AccessTransformEntry(@NonNull String rawAtEntry) {
-        String[] atEntry = rawAtEntry.split(" ");
+        String[] atEntry = rawAtEntry.split("\\s+");
         String[] modifiers = atEntry[0].split("(?=[-+])");
         classAt = atEntry.length == 2;
         this.accessLevel = AccessLevel.BY_NAME.get(modifiers[0]);
