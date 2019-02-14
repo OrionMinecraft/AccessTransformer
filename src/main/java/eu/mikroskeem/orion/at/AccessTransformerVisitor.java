@@ -100,7 +100,7 @@ final class AccessTransformerVisitor extends ClassVisitor {
             if(!ownerClass.equals(ate.getClassName())) continue;
 
             /* If AT entry is wildcard, return given AT entry */
-            if(ate.getDescriptor().equals("*"))
+            if(ate.getDescriptor().equals("*()"))
                 return ate;
 
             /* Return given AT entry if method name & desc equal */
