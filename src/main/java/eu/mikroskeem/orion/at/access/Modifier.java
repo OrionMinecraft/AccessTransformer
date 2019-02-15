@@ -67,9 +67,6 @@ public enum Modifier {
 
         for (Modifier value : Modifier.values()) {
             byOpcode.put(value.opcode, value);
-        }
-
-        for (Modifier value : Modifier.values()) {
             byName.put(value.name, value);
         }
     }

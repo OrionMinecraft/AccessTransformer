@@ -95,9 +95,6 @@ public enum AccessLevel {
 
         for (AccessLevel value : AccessLevel.values()) {
             byOpcode.put(value.opcode, value);
-        }
-
-        for (AccessLevel value : AccessLevel.values()) {
             byName.put(value.name, value);
         }
     }
