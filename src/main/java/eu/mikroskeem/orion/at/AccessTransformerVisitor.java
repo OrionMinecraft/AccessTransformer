@@ -12,6 +12,7 @@ import org.objectweb.asm.Opcodes;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * An access transforming class visitor
@@ -26,16 +27,13 @@ final class AccessTransformerVisitor extends ClassVisitor {
 
     AccessTransformerVisitor(@NonNull List<AccessTransformEntry> accessTransforms, @NonNull ClassVisitor classVisitor) {
         super(Opcodes.ASM5, classVisitor);
-        this.accessTransforms = accessTransforms;
+        this.accessTransforms = Objects.requireNonNull(accessTransforms, "accessTransforms must not be null");
     }
 
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         currentClassRaw = name;
         String currentClass = name.replace('/', '.');
-
-        /* Transform class access */
-        int newAccess = replaceClassAccess(access, currentClass);
 
         /* Build method and field transformer maps */
         for (AccessTransformEntry accessTransform : accessTransforms) {
@@ -49,21 +47,17 @@ final class AccessTransformerVisitor extends ClassVisitor {
             }
         }
 
-        super.visit(version, newAccess, name, signature, superName, interfaces);
+        super.visit(version, replaceClassAccess(access, currentClass), name, signature, superName, interfaces);
     }
 
     @Override
     public void visitInnerClass(String name, String outerName, String innerName, int access) {
-        /* Transform inner class access */
-        int newAccess = replaceClassAccess(access, name.replace('/', '.'));
-        super.visitInnerClass(name, outerName, innerName, newAccess);
+        super.visitInnerClass(name, outerName, innerName, replaceClassAccess(access, name.replace('/', '.')));
     }
 
     @Override
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-        /* Transform field access */
-        int newAccess = replaceFieldAccess(access, name);
-        return super.visitField(newAccess, name, desc, signature, value);
+        return super.visitField(replaceFieldAccess(access, name), name, desc, signature, value);
     }
 
     @Override
@@ -96,23 +90,15 @@ final class AccessTransformerVisitor extends ClassVisitor {
                 .findFirst()
                 .orElse(null);
 
-        return entry != null ? overrideAccessModifier(access, entry) : access;
+        return overrideAccessModifier(access, entry);
     }
 
     private int replaceMethodAccess(int access, @NonNull String methodName, @NonNull String methodDesc) {
-        AccessTransformEntry entry;
-        if((entry = applyWild(methodTransforms.get(methodName + methodDesc), methodTransforms.get("*()"))) == null)
-            return access;
-
-        return overrideAccessModifier(access, entry);
+        return overrideAccessModifier(access, applyWild(methodTransforms.get(methodName + methodDesc), methodTransforms.get("*()")));
     }
 
     private int replaceFieldAccess(int access, @NonNull String fieldName) {
-        AccessTransformEntry entry;
-        if((entry = applyWild(fieldTransforms.get(fieldName), fieldTransforms.get("*"))) == null)
-            return access;
-
-        return overrideAccessModifier(access, entry);
+        return overrideAccessModifier(access, applyWild(fieldTransforms.get(fieldName), fieldTransforms.get("*")));
     }
 
     /**
@@ -126,9 +112,9 @@ final class AccessTransformerVisitor extends ClassVisitor {
         public AccessTransformingMethodAdapter(MethodVisitor mv, String ownerClass, String methodName,
                                                String methodDesc) {
             super(Opcodes.ASM5, mv);
-            this.ownerClass = ownerClass;
-            this.methodName = methodName;
-            this.methodDesc = methodDesc;
+            this.ownerClass = Objects.requireNonNull(ownerClass, "ownerClass must not be null");
+            this.methodName = Objects.requireNonNull(methodName, "methodName must not be null");
+            this.methodDesc = Objects.requireNonNull(methodDesc, "methodDesc must not be null");
         }
 
         @Override
@@ -147,7 +133,10 @@ final class AccessTransformerVisitor extends ClassVisitor {
     /**
      * Helper method to override access modifier
      */
-    private static int overrideAccessModifier(int original, @NonNull AccessTransformEntry atEntry) {
+    private static int overrideAccessModifier(int original, @Nullable AccessTransformEntry atEntry) {
+        if(atEntry == null)
+            return original;
+
         int newAccess = AccessLevel.overrideAccessLevel(original, atEntry.getAccessLevel());
         for (Modifier.ModifierEntry entry : atEntry.getModifiers()) {
             if(entry.isRemove()) {
@@ -165,11 +154,6 @@ final class AccessTransformerVisitor extends ClassVisitor {
      */
     @Nullable
     private static AccessTransformEntry applyWild(@Nullable AccessTransformEntry original, @Nullable AccessTransformEntry wild) {
-        if(original == null) {
-            original = wild;
-        } else {
-            original = wild != null ? wild.merge(original) : original;
-        }
-        return original;
+        return original != null ? (wild != null ? wild.merge(original) : original) : wild;
     }
 }

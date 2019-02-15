@@ -6,6 +6,7 @@ import org.objectweb.asm.Opcodes;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Represents method/field access level
@@ -30,8 +31,8 @@ public enum AccessLevel {
      * @param name Access level name
      * @param opcode Access level opcode, see {@link Opcodes}
      */
-    AccessLevel(String name, int opcode) {
-        this.name = name;
+    AccessLevel(@NonNull String name, int opcode) {
+        this.name = Objects.requireNonNull(name, "name must not be null");
         this.opcode = opcode;
     }
 

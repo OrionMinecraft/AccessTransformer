@@ -6,6 +6,7 @@ import org.objectweb.asm.Opcodes;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Represents field/method modifiers
@@ -87,9 +88,9 @@ public enum Modifier {
          * @param remove Whether modifier must be added or removed
          * @param modifier {@link Modifier}
          */
-        public ModifierEntry(boolean remove, Modifier modifier) {
+        public ModifierEntry(boolean remove, @NonNull Modifier modifier) {
             this.remove = remove;
-            this.modifier = modifier;
+            this.modifier = Objects.requireNonNull(modifier, "modifier must be not null");
         }
 
         /**
@@ -106,6 +107,7 @@ public enum Modifier {
          *
          * @return {@link Modifier} instance
          */
+        @NonNull
         public Modifier getModifier() {
             return modifier;
         }
