@@ -58,17 +58,18 @@ public enum Modifier {
     public final static Map<String, Modifier> BY_NAME;
 
     static {
-        BY_OPCODE = Collections.unmodifiableMap(new HashMap<Integer, Modifier>(){{
-            for (Modifier value : Modifier.values()) {
-                put(value.opcode, value);
-            }
-        }});
+        Map<Integer, Modifier> byOpcode;
+        Map<String, Modifier> byName;
+        BY_OPCODE = Collections.unmodifiableMap((byOpcode = new HashMap<>(Modifier.values().length)));
+        BY_NAME = Collections.unmodifiableMap((byName  = new HashMap<>(Modifier.values().length)));
 
-        BY_NAME = Collections.unmodifiableMap(new HashMap<String, Modifier>(){{
-            for (Modifier value : Modifier.values()) {
-                put(value.name, value);
-            }
-        }});
+        for (Modifier value : Modifier.values()) {
+            byOpcode.put(value.opcode, value);
+        }
+
+        for (Modifier value : Modifier.values()) {
+            byName.put(value.name, value);
+        }
     }
 
     /**
@@ -95,7 +96,7 @@ public enum Modifier {
         /**
          * Returns whether given modifier should be added or removed
          *
-         * @return
+         * @return Whether given modifier should be added or removed
          */
         public boolean isRemove() {
             return remove;

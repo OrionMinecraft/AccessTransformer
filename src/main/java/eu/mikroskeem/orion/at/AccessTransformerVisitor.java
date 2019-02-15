@@ -8,8 +8,9 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * An access transforming visitor
@@ -18,8 +19,10 @@ import java.util.stream.Collectors;
  */
 final class AccessTransformerVisitor extends ClassVisitor {
     private final List<AccessTransformEntry> accessTransforms;
+    private Map<String, AccessTransformEntry> methodTransforms = new HashMap<>();
+    private Map<String, AccessTransformEntry> fieldTransforms = new HashMap<>();
     private String currentClass;
-    private List<AccessTransformEntry> currentClassAccessTransforms;
+    private String currentClassRaw;
 
     AccessTransformerVisitor(List<AccessTransformEntry> accessTransforms, ClassVisitor classVisitor) {
         super(Opcodes.ASM5, classVisitor);
@@ -28,51 +31,56 @@ final class AccessTransformerVisitor extends ClassVisitor {
 
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-        int newAccess = access;
         currentClass = name.replace('/', '.');
-        currentClassAccessTransforms = accessTransforms.stream()
-                .filter(ate -> ate.getClassName().equals(currentClass))
-                .collect(Collectors.toList());
+        currentClassRaw = name;
 
         /* Transform class access */
-        AccessTransformEntry ate = findClassAT(currentClass);
-        if(ate != null) {
-            newAccess = getNewAccessModifier(newAccess, ate);
+        AccessTransformEntry ate;
+        int newAccess = (ate = findClassAT(currentClass)) != null ? getNewAccessModifier(access, ate) : access;
+
+        /* Build method and field transformer maps */
+        for (AccessTransformEntry accessTransform : accessTransforms) {
+            if(!accessTransform.getClassName().equals(currentClass))
+                continue;
+
+            if(accessTransform.isMethod()) {
+                methodTransforms.put(accessTransform.getDescriptor(), accessTransform);
+            } else if(!accessTransform.isClassAt()) {
+                fieldTransforms.put(accessTransform.getDescriptor(), accessTransform);
+            }
         }
+
         super.visit(version, newAccess, name, signature, superName, interfaces);
     }
 
     @Override
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-        int newAccess = access;
-
         /* Transform field access */
-        AccessTransformEntry ate = findFieldAT(currentClass, name);
-        if(ate != null) {
-            newAccess = getNewAccessModifier(newAccess, ate);
-        }
+        AccessTransformEntry ate;
+        int newAccess = (ate = findFieldAT(name)) != null ? getNewAccessModifier(access, ate) : access;
         return super.visitField(newAccess, name, desc, signature, value);
     }
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        int newAccess = access;
-        AccessTransformEntry ate;
-        if(!"<clinit>".equals(name) && (ate = findMethodAT(currentClass, name, desc)) != null) {
-            newAccess = getNewAccessModifier(newAccess, ate);
+        /* Do not attempt to process static initializers */
+        if("<clinit>".equals(name))
+            return super.visitMethod(access, name, desc, signature, exceptions);
 
-            /* Apply opcode change, if given method was private and is normal method */
-            if(!"<init>".equals(desc)
-                    && (access & Opcodes.ACC_PRIVATE) != 0
-                    && (newAccess & Opcodes.ACC_PRIVATE) == 0) {
-                return new AccessTransformingMethodAdapter(
-                        super.visitMethod(newAccess, name, desc, signature, exceptions),
-                        currentClass,
-                        name,
-                        desc
-                );
-            }
+        /* Get new access level */
+        AccessTransformEntry ate;
+        int newAccess = (ate = findMethodAT(name, desc)) != null ? getNewAccessModifier(access, ate) : access;
+
+        /* Apply opcode change, if given method was private and is normal method */
+        if(!"<init>".equals(desc) && (access & Opcodes.ACC_PRIVATE) != 0 && (newAccess & Opcodes.ACC_PRIVATE) == 0) {
+            return new AccessTransformingMethodAdapter(
+                    super.visitMethod(newAccess, name, desc, signature, exceptions),
+                    currentClassRaw,
+                    name,
+                    desc
+            );
         }
+
         return super.visitMethod(newAccess, name, desc, signature, exceptions);
     }
 
@@ -80,7 +88,8 @@ final class AccessTransformerVisitor extends ClassVisitor {
     private AccessTransformEntry findClassAT(String className) {
         for(AccessTransformEntry ate: accessTransforms) {
             /* Skip non-class ATs */
-            if(!ate.isClassAt()) continue;
+            if(!ate.isClassAt())
+                continue;
 
             /* Make sure we pick right AT */
             if(ate.getClassName().equals(className))
@@ -91,52 +100,20 @@ final class AccessTransformerVisitor extends ClassVisitor {
     }
 
     @Nullable
-    private AccessTransformEntry findMethodAT(String ownerClass, String methodName, String methodDesc) {
-        for(AccessTransformEntry ate: accessTransforms) {
-            /* Skip non-method ATs */
-            if(ate.isClassAt() || !ate.isMethod()) continue;
-
-            /* Make sure owner class is equal */
-            if(!ownerClass.equals(ate.getClassName())) continue;
-
-            /* If AT entry is wildcard, return given AT entry */
-            if(ate.getDescriptor().equals("*()"))
-                return ate;
-
-            /* Return given AT entry if method name & desc equal */
-            if((methodName + methodDesc).equals(ate.getDescriptor()))
-                return ate;
-        }
-
-        return null;
+    private AccessTransformEntry findMethodAT(String methodName, String methodDesc) {
+        return applyWild(methodTransforms.get(methodName + methodDesc), methodTransforms.get("*()"));
     }
 
     @Nullable
-    private AccessTransformEntry findFieldAT(String ownerClass, String fieldName) {
-        for(AccessTransformEntry ate: accessTransforms) {
-            /* Skip class & method ATs */
-            if(ate.isClassAt() || ate.isMethod()) continue;
-
-            /* Make sure owner class is equal */
-            if(!ownerClass.equals(ate.getClassName())) continue;
-
-            /* If AT entry is wildcard, return given AT entry */
-            if("*".equals(ate.getDescriptor()))
-                return ate;
-
-            /* Return given AT entry if field name equal */
-            if(ate.getDescriptor().equals(fieldName))
-                return ate;
-        }
-
-        return null;
+    private AccessTransformEntry findFieldAT(String fieldName) {
+        return applyWild(fieldTransforms.get(fieldName), fieldTransforms.get("*"));
     }
 
     /**
      * Access transforming method adapter
      */
     private static class AccessTransformingMethodAdapter extends MethodVisitor {
-        private final String ownerClass;
+        private final String ownerClass; // Note: raw class name, a'la 'foo/bar/Baz'
         private final String methodName;
         private final String methodDesc;
 
@@ -152,7 +129,7 @@ final class AccessTransformerVisitor extends ClassVisitor {
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
             /* Replace INVOKESPECIAL with INVOKEVIRTUAL */
             if(!itf && opcode == Opcodes.INVOKESPECIAL
-                    && ownerClass.replace('.', '/').equals(owner)
+                    && ownerClass.equals(owner)
                     && methodName.equals(name)
                     && methodDesc.equals(desc)) {
                 opcode = Opcodes.INVOKEVIRTUAL;
@@ -175,5 +152,18 @@ final class AccessTransformerVisitor extends ClassVisitor {
         }
 
         return newAccess;
+    }
+
+    /**
+     * Helper method to merge access modifier with wildcard one if present
+     */
+    @Nullable
+    private static AccessTransformEntry applyWild(@Nullable AccessTransformEntry original, @Nullable AccessTransformEntry wild) {
+        if(original == null) {
+            original = wild;
+        } else {
+            original = wild != null ? wild.merge(original) : original;
+        }
+        return original;
     }
 }

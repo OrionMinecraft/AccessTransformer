@@ -3,9 +3,14 @@ package eu.mikroskeem.orion.at;
 import eu.mikroskeem.orion.at.access.AccessLevel;
 import eu.mikroskeem.orion.at.access.Modifier;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -65,6 +70,15 @@ public final class AccessTransformEntry {
         }
     }
 
+    private AccessTransformEntry(@NonNull AccessLevel accessLevel, @NonNull List<Modifier.ModifierEntry> modifiers, @NonNull String className, String descriptor, boolean method, boolean classAt) {
+        this.accessLevel = accessLevel;
+        this.modifiers = modifiers;
+        this.className = className;
+        this.descriptor = descriptor;
+        this.method = method;
+        this.classAt = classAt;
+    }
+
     /**
      * Gets {@link AccessTransformEntry}'s {@link AccessLevel}
      *
@@ -82,7 +96,7 @@ public final class AccessTransformEntry {
      */
     @NonNull
     public List<Modifier.ModifierEntry> getModifiers() {
-        return modifiers;
+        return Collections.unmodifiableList(modifiers);
     }
 
     /**
@@ -98,9 +112,9 @@ public final class AccessTransformEntry {
     /**
      * Gets target field/method descriptor (field does not have <pre>()V</pre>-like descriptor though)
      *
-     * @return Target method descriptor
+     * @return Target method descriptor or null
      */
-    @NonNull
+    @Nullable
     public String getDescriptor() {
         return descriptor;
     }
@@ -121,6 +135,37 @@ public final class AccessTransformEntry {
      */
     public boolean isClassAt() {
         return classAt;
+    }
+
+    /**
+     * Merges this {@link AccessTransformEntry} into other {@link AccessTransformEntry}
+     *
+     * @param other Other {@link AccessTransformEntry} to merge with
+     * @return New {@link AccessTransformEntry}
+     */
+    @NonNull
+    public AccessTransformEntry merge(@NonNull AccessTransformEntry other) {
+        if(this.method != other.method)
+            throw new IllegalArgumentException("Both AccessTransformEntries must target a method");
+        if(this.classAt != other.classAt)
+            throw new IllegalArgumentException("Both AccessTransformEntries must target a class");
+        if(!this.className.equals(other.className))
+            throw new IllegalArgumentException("Both AccessTransformEntries must target same class");
+        if(!Objects.equals(this.descriptor, other.descriptor))
+            throw new IllegalArgumentException("Both AccessTransformEntries must target same descriptor");
+
+        AccessLevel newAccessLevel = this.accessLevel.ordinal() > other.accessLevel.ordinal()  ? this.accessLevel : other.accessLevel;
+
+        Map<Modifier, Modifier.ModifierEntry> newModifiers = new HashMap<>();
+        for (Modifier.ModifierEntry modifierEntry : this.modifiers) {
+            newModifiers.put(modifierEntry.getModifier(), modifierEntry);
+        }
+
+        for (Modifier.ModifierEntry modifierEntry : other.modifiers) {
+            newModifiers.put(modifierEntry.getModifier(), modifierEntry);
+        }
+
+        return new AccessTransformEntry(newAccessLevel, new ArrayList<>(newModifiers.values()), this.className, this.descriptor, this.method, this.classAt);
     }
 
     @Override
