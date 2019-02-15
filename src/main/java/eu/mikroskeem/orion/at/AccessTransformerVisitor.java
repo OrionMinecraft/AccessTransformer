@@ -36,8 +36,7 @@ final class AccessTransformerVisitor extends ClassVisitor {
         String currentClass = name.replace('/', '.');
 
         /* Transform class access */
-        AccessTransformEntry ate;
-        int newAccess = (ate = findClassAT(currentClass)) != null ? getNewAccessModifier(access, ate) : access;
+        int newAccess = replaceClassAccess(access, currentClass);
 
         /* Build method and field transformer maps */
         for (AccessTransformEntry accessTransform : accessTransforms) {
@@ -59,16 +58,14 @@ final class AccessTransformerVisitor extends ClassVisitor {
     @Override
     public void visitInnerClass(String name, String outerName, String innerName, int access) {
         /* Transform inner class access */
-        AccessTransformEntry ate;
-        int newAccess = (ate = findInnerClassAT(name.replace('/', '.'))) != null ? getNewAccessModifier(access, ate) : access;
+        int newAccess = replaceInnerClassAccess(access, name.replace('/', '.'));
         super.visitInnerClass(name, outerName, innerName, newAccess);
     }
 
     @Override
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
         /* Transform field access */
-        AccessTransformEntry ate;
-        int newAccess = (ate = findFieldAT(name)) != null ? getNewAccessModifier(access, ate) : access;
+        int newAccess = replaceFieldAccess(access, name);
         return super.visitField(newAccess, name, desc, signature, value);
     }
 
@@ -79,8 +76,7 @@ final class AccessTransformerVisitor extends ClassVisitor {
             return super.visitMethod(access, name, desc, signature, exceptions);
 
         /* Get new access level */
-        AccessTransformEntry ate;
-        int newAccess = (ate = findMethodAT(name, desc)) != null ? getNewAccessModifier(access, ate) : access;
+        int newAccess = replaceMethodAccess(access, name, desc);
 
         /* Apply opcode change, if given method was private and is normal method */
         if(!"<init>".equals(desc) && (access & Opcodes.ACC_PRIVATE) != 0 && (newAccess & Opcodes.ACC_PRIVATE) == 0) {
@@ -95,34 +91,39 @@ final class AccessTransformerVisitor extends ClassVisitor {
         return super.visitMethod(newAccess, name, desc, signature, exceptions);
     }
 
-    @Nullable
-    private AccessTransformEntry findClassAT(@NonNull String className) {
-        for(AccessTransformEntry ate: accessTransforms) {
-            /* Skip non-class ATs */
-            if(!ate.isClassAt())
-                continue;
+    private int replaceClassAccess(int access, @NonNull String className) {
+        AccessTransformEntry entry = accessTransforms
+                .stream()
+                .filter(AccessTransformEntry::isClassAt)
+                .filter(ate -> ate.getClassName().equals(className))
+                .findFirst()
+                .orElse(null);
 
-            /* Make sure we pick right AT */
-            if(ate.getClassName().equals(className))
-                return ate;
-        }
-
-        return null;
+        return entry != null ? overrideAccessModifier(access, entry) : access;
     }
 
-    @Nullable
-    private AccessTransformEntry findInnerClassAT(@NonNull String className) {
-        return innerClassTransforms.get(className);
+    private int replaceInnerClassAccess(int access, @NonNull String className) {
+        AccessTransformEntry entry;
+        if((entry = innerClassTransforms.get(className)) == null)
+            return access;
+
+        return overrideAccessModifier(access, entry);
     }
 
-    @Nullable
-    private AccessTransformEntry findMethodAT(@NonNull String methodName, @NonNull String methodDesc) {
-        return applyWild(methodTransforms.get(methodName + methodDesc), methodTransforms.get("*()"));
+    private int replaceMethodAccess(int access, @NonNull String methodName, @NonNull String methodDesc) {
+        AccessTransformEntry entry;
+        if((entry = applyWild(methodTransforms.get(methodName + methodDesc), methodTransforms.get("*()"))) == null)
+            return access;
+
+        return overrideAccessModifier(access, entry);
     }
 
-    @Nullable
-    private AccessTransformEntry findFieldAT(@NonNull String fieldName) {
-        return applyWild(fieldTransforms.get(fieldName), fieldTransforms.get("*"));
+    private int replaceFieldAccess(int access, @NonNull String fieldName) {
+        AccessTransformEntry entry;
+        if((entry = applyWild(fieldTransforms.get(fieldName), fieldTransforms.get("*"))) == null)
+            return access;
+
+        return overrideAccessModifier(access, entry);
     }
 
     /**
@@ -155,9 +156,9 @@ final class AccessTransformerVisitor extends ClassVisitor {
     }
 
     /**
-     * Helper method to get new access modifier
+     * Helper method to override access modifier
      */
-    private static int getNewAccessModifier(int original, @NonNull AccessTransformEntry atEntry) {
+    private static int overrideAccessModifier(int original, @NonNull AccessTransformEntry atEntry) {
         int newAccess = AccessLevel.overrideAccessLevel(original, atEntry.getAccessLevel());
         for (Modifier.ModifierEntry entry : atEntry.getModifiers()) {
             if(entry.isRemove()) {
