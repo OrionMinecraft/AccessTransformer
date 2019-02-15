@@ -25,8 +25,9 @@ public final class AccessTransformEntry {
     @NonNull private final List<Modifier.ModifierEntry> modifiers;
     @NonNull private final String className;
     private final String descriptor;
-    private final boolean method;
+    private final boolean methodAt;
     private final boolean classAt;
+    private final boolean fieldAt;
 
     /**
      * Parses raw access transformer entry from string
@@ -52,7 +53,8 @@ public final class AccessTransformEntry {
 
         /* If it is class AT, then return */
         if(classAt) {
-            method = false;
+            methodAt = false;
+            fieldAt = false;
             return;
         }
 
@@ -61,22 +63,26 @@ public final class AccessTransformEntry {
         if(start != -1) {
             int end = descriptor.indexOf(')', start);
             if(end != -1) {
-                method = true;
+                methodAt = true;
+                fieldAt = false;
             } else {
                 throw new IllegalStateException("Invalid method AT entry: " + rawAtEntry);
             }
         } else {
-            method = false;
+            methodAt = false;
+            fieldAt = true;
         }
     }
 
-    private AccessTransformEntry(@NonNull AccessLevel accessLevel, @NonNull List<Modifier.ModifierEntry> modifiers, @NonNull String className, String descriptor, boolean method, boolean classAt) {
+    private AccessTransformEntry(@NonNull AccessLevel accessLevel, @NonNull List<Modifier.ModifierEntry> modifiers,
+                                 @NonNull String className, String descriptor, boolean methodAt, boolean classAt, boolean fieldAt) {
         this.accessLevel = accessLevel;
         this.modifiers = modifiers;
         this.className = className;
         this.descriptor = descriptor;
-        this.method = method;
+        this.methodAt = methodAt;
         this.classAt = classAt;
+        this.fieldAt = fieldAt;
     }
 
     /**
@@ -120,21 +126,30 @@ public final class AccessTransformEntry {
     }
 
     /**
-     * Returns whether {@link AccessTransformEntry} targets method or not
+     * Returns whether this {@link AccessTransformEntry} targets a method or not
      *
-     * @return Whether {@link AccessTransformEntry} targets method or not
+     * @return Whether this {@link AccessTransformEntry} targets a method or not
      */
-    public boolean isMethod() {
-        return method;
+    public boolean isMethodAt() {
+        return methodAt;
     }
 
     /**
-     * Returns whether {@link AccessTransformEntry} targets class or not
+     * Returns whether this {@link AccessTransformEntry} targets a class or not
      *
-     * @return Whether {@link AccessTransformEntry} targets class or not
+     * @return Whether this {@link AccessTransformEntry} targets a class or not
      */
     public boolean isClassAt() {
         return classAt;
+    }
+
+    /**
+     * Returns whether this {@link AccessTransformEntry} targets a field or not
+     *
+     * @return Whether this {@link AccessTransformEntry} targets a field or not
+     */
+    public boolean isFieldAt() {
+        return fieldAt;
     }
 
     /**
@@ -145,10 +160,12 @@ public final class AccessTransformEntry {
      */
     @NonNull
     public AccessTransformEntry merge(@NonNull AccessTransformEntry other) {
-        if(this.method != other.method)
+        if(this.methodAt != other.methodAt)
             throw new IllegalArgumentException("Both AccessTransformEntries must target a method");
         if(this.classAt != other.classAt)
             throw new IllegalArgumentException("Both AccessTransformEntries must target a class");
+        if (fieldAt != other.fieldAt)
+            throw new IllegalArgumentException("Both AccessTransformEntries must target a field");
         if(!this.className.equals(other.className))
             throw new IllegalArgumentException("Both AccessTransformEntries must target same class");
         if(!Objects.equals(this.descriptor, other.descriptor))
@@ -165,7 +182,8 @@ public final class AccessTransformEntry {
             newModifiers.put(modifierEntry.getModifier(), modifierEntry);
         }
 
-        return new AccessTransformEntry(newAccessLevel, new ArrayList<>(newModifiers.values()), this.className, this.descriptor, this.method, this.classAt);
+        return new AccessTransformEntry(newAccessLevel, new ArrayList<>(newModifiers.values()), this.className,
+                this.descriptor, this.methodAt, this.classAt, this.fieldAt);
     }
 
     @Override
@@ -177,9 +195,11 @@ public final class AccessTransformEntry {
 
         AccessTransformEntry that = (AccessTransformEntry) o;
 
-        if (method != that.method)
+        if (methodAt != that.methodAt)
             return false;
         if (classAt != that.classAt)
+            return false;
+        if (fieldAt != that.fieldAt)
             return false;
         if (accessLevel != that.accessLevel)
             return false;
@@ -196,15 +216,16 @@ public final class AccessTransformEntry {
         result = 31 * result + modifiers.hashCode();
         result = 31 * result + className.hashCode();
         result = 31 * result + (descriptor != null ? descriptor.hashCode() : 0);
-        result = 31 * result + (method ? 1 : 0);
+        result = 31 * result + (methodAt ? 1 : 0);
         result = 31 * result + (classAt ? 1 : 0);
+        result = 31 * result + (fieldAt ? 1 : 0);
         return result;
     }
 
     @Override
     public String toString() {
         return "AccessTransformEntry{accessLevel=" + accessLevel + ", modifiers=" + modifiers + ", className='"
-                + className + '\'' + ", descriptor='" + descriptor + '\'' + ", method=" + method + ", classAt=" +
+                + className + '\'' + ", descriptor='" + descriptor + '\'' + ", method=" + methodAt + ", classAt=" +
                 classAt + '}';
     }
 }

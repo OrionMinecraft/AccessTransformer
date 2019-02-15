@@ -40,9 +40,9 @@ final class AccessTransformerVisitor extends ClassVisitor {
             if(!accessTransform.getClassName().equals(currentClass))
                 continue;
 
-            if(accessTransform.isMethod()) {
+            if(accessTransform.isMethodAt()) {
                 methodTransforms.put(accessTransform.getDescriptor(), accessTransform);
-            } else if(!accessTransform.isClassAt()) {
+            } else if(accessTransform.isFieldAt()) {
                 fieldTransforms.put(accessTransform.getDescriptor(), accessTransform);
             }
         }
