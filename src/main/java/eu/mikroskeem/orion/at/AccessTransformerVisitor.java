@@ -22,6 +22,7 @@ final class AccessTransformerVisitor extends ClassVisitor {
     private final List<AccessTransformEntry> accessTransforms;
     private Map<String, AccessTransformEntry> methodTransforms = new HashMap<>();
     private Map<String, AccessTransformEntry> fieldTransforms = new HashMap<>();
+    private Map<String, AccessTransformEntry> innerClassTransforms = new HashMap<>();
     private String currentClassRaw;
 
     AccessTransformerVisitor(@NonNull List<AccessTransformEntry> accessTransforms, @NonNull ClassVisitor classVisitor) {
@@ -40,17 +41,30 @@ final class AccessTransformerVisitor extends ClassVisitor {
 
         /* Build method and field transformer maps */
         for (AccessTransformEntry accessTransform : accessTransforms) {
-            if(!accessTransform.getClassName().equals(currentClass))
+            if(!accessTransform.getClassName().startsWith(currentClass))
                 continue;
 
             if(accessTransform.isMethod()) {
                 methodTransforms.put(accessTransform.getDescriptor(), accessTransform);
-            } else if(!accessTransform.isClassAt()) {
+            } else if(accessTransform.isClassAt()) {
+                innerClassTransforms.put(accessTransform.getClassName(), accessTransform);
+            } else {
                 fieldTransforms.put(accessTransform.getDescriptor(), accessTransform);
             }
         }
 
         super.visit(version, newAccess, name, signature, superName, interfaces);
+    }
+
+    @Override
+    public void visitInnerClass(String name, String outerName, String innerName, int access) {
+        String currentClass = name.replace('/', '.');
+
+        /* Transform inner class access */
+        AccessTransformEntry ate;
+        int newAccess = (ate = findClassAT(currentClass)) != null ? getNewAccessModifier(access, ate) : access;
+
+        super.visitInnerClass(name, outerName, innerName, newAccess);
     }
 
     @Override

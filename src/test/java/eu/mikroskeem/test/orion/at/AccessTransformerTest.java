@@ -11,7 +11,12 @@ import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.util.TraceClassVisitor;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -83,6 +88,19 @@ public class AccessTransformerTest {
 
         Assertions.assertFalse(Modifier.isFinal(newClass.getModifiers()), "Class shouldn't be final after transform");
         Assertions.assertTrue(Modifier.isPublic(newClass.getModifiers()), "Class should be public after transform");
+    }
+
+    @Test
+    public void testInnerClassAccessTransformer() throws Exception {
+        Class<?> newClass1 = transform("test_inner_class_at.cfg", Class.forName("eu.mikroskeem.test.orion.at.TestClass4$InnerClass1", false, this.getClass().getClassLoader()));
+        Class<?> newClass2 = transform("test_inner_class_at.cfg", Class.forName("eu.mikroskeem.test.orion.at.TestClass4$InnerClass2", false, this.getClass().getClassLoader()));
+        Class<?> baseClass = transform("test_inner_class_at.cfg", TestClass4.class);
+
+        Assertions.assertTrue(Modifier.isPublic(newClass1.getModifiers()), "Inner class 1 should be public after transform");
+        Assertions.assertTrue(Modifier.isPublic(newClass2.getModifiers()), "Inner class 2 should be public after transform");
+        Assertions.assertFalse(Modifier.isFinal(newClass2.getModifiers()), "Inner class 2 shouldn't be final after transform");
+        //Assertions.assertEquals(baseClass.getDeclaredClasses()[0], newClass1);
+        //Assertions.assertEquals(baseClass.getDeclaredClasses()[1], newClass2);
     }
 
     /* Utils */
