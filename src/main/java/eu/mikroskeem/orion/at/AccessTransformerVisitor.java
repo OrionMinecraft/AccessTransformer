@@ -139,11 +139,8 @@ final class AccessTransformerVisitor extends ClassVisitor {
 
         int newAccess = AccessLevel.overrideAccessLevel(original, atEntry.getAccessLevel());
         for (Modifier.ModifierEntry entry : atEntry.getModifiers()) {
-            if(entry.isRemove()) {
-                newAccess &= ~entry.getModifier().getOpcode();
-            } else {
-                newAccess |= entry.getModifier().getOpcode();
-            }
+            int opcode = entry.getModifier().getOpcode();
+            newAccess = entry.isRemove() ? newAccess & ~opcode : newAccess | opcode;
         }
 
         return newAccess;
