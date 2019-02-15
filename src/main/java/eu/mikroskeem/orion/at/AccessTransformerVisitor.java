@@ -58,12 +58,9 @@ final class AccessTransformerVisitor extends ClassVisitor {
 
     @Override
     public void visitInnerClass(String name, String outerName, String innerName, int access) {
-        String currentClass = name.replace('/', '.');
-
         /* Transform inner class access */
         AccessTransformEntry ate;
-        int newAccess = (ate = findClassAT(currentClass)) != null ? getNewAccessModifier(access, ate) : access;
-
+        int newAccess = (ate = findInnerClassAT(name.replace('/', '.'))) != null ? getNewAccessModifier(access, ate) : access;
         super.visitInnerClass(name, outerName, innerName, newAccess);
     }
 
@@ -111,6 +108,11 @@ final class AccessTransformerVisitor extends ClassVisitor {
         }
 
         return null;
+    }
+
+    @Nullable
+    private AccessTransformEntry findInnerClassAT(@NonNull String className) {
+        return innerClassTransforms.get(className);
     }
 
     @Nullable
