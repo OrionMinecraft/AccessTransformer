@@ -1,7 +1,7 @@
 package eu.mikroskeem.orion.at;
 
 import eu.mikroskeem.orion.at.access.AccessLevel;
-import eu.mikroskeem.orion.at.access.Modifier;
+import eu.mikroskeem.orion.at.access.AccessModifier;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -22,7 +22,7 @@ import java.util.stream.Stream;
  */
 public final class AccessTransformEntry {
     @NonNull private final AccessLevel accessLevel;
-    @NonNull private final List<Modifier.ModifierEntry> modifiers;
+    @NonNull private final List<AccessModifier.ModifierEntry> accessModifiers;
     @NonNull private final String className;
     private final String descriptor;
     private final boolean methodAt;
@@ -40,14 +40,14 @@ public final class AccessTransformEntry {
         String[] modifiers = atEntry[0].split("(?=[-+])");
         classAt = atEntry.length == 2;
         this.accessLevel = AccessLevel.BY_NAME.get(modifiers[0]);
-        this.modifiers = Stream.of(Arrays.copyOfRange(modifiers, 1, modifiers.length)).map(entry -> {
+        this.accessModifiers = Stream.of(Arrays.copyOfRange(modifiers, 1, modifiers.length)).map(entry -> {
             char action = entry.charAt(0);
-            Modifier modifier = Modifier.BY_NAME.get(entry.substring(1));
+            AccessModifier accessModifier = AccessModifier.BY_NAME.get(entry.substring(1));
 
             /* Validate */
-            if(modifier == null) throw new IllegalStateException("Invalid modifier: " + entry.substring(1));
-            if(action != '-' && action != '+') throw new IllegalStateException("Invalid modifier action: " + action);
-            return new Modifier.ModifierEntry(action == '-', modifier);
+            if(accessModifier == null) throw new IllegalStateException("Invalid access modifier: " + entry.substring(1));
+            if(action != '-' && action != '+') throw new IllegalStateException("Invalid access modifier action: " + action);
+            return new AccessModifier.ModifierEntry(action == '-', accessModifier);
         }).collect(Collectors.toList());
         this.className = atEntry[1];
         this.descriptor = classAt ? null : atEntry[2];
@@ -78,10 +78,10 @@ public final class AccessTransformEntry {
         }
     }
 
-    private AccessTransformEntry(@NonNull AccessLevel accessLevel, @NonNull List<Modifier.ModifierEntry> modifiers,
+    private AccessTransformEntry(@NonNull AccessLevel accessLevel, @NonNull List<AccessModifier.ModifierEntry> modifiers,
                                  @NonNull String className, String descriptor, boolean methodAt, boolean classAt, boolean fieldAt) {
         this.accessLevel = accessLevel;
-        this.modifiers = modifiers;
+        this.accessModifiers = modifiers;
         this.className = className;
         this.descriptor = descriptor;
         this.methodAt = methodAt;
@@ -100,13 +100,13 @@ public final class AccessTransformEntry {
     }
 
     /**
-     * Gets {@link AccessTransformEntry}'s {@link Modifier.ModifierEntry} list
+     * Gets {@link AccessTransformEntry}'s {@link AccessModifier.ModifierEntry} list
      *
-     * @return List of {@link Modifier.ModifierEntry}
+     * @return List of {@link AccessModifier.ModifierEntry}
      */
     @NonNull
-    public List<Modifier.ModifierEntry> getModifiers() {
-        return Collections.unmodifiableList(modifiers);
+    public List<AccessModifier.ModifierEntry> getAccessModifiers() {
+        return Collections.unmodifiableList(accessModifiers);
     }
 
     /**
@@ -177,13 +177,13 @@ public final class AccessTransformEntry {
 
         AccessLevel newAccessLevel = this.accessLevel.ordinal() > other.accessLevel.ordinal()  ? this.accessLevel : other.accessLevel;
 
-        Map<Modifier, Modifier.ModifierEntry> newModifiers = new HashMap<>();
-        for (Modifier.ModifierEntry modifierEntry : this.modifiers) {
-            newModifiers.put(modifierEntry.getModifier(), modifierEntry);
+        Map<AccessModifier, AccessModifier.ModifierEntry> newModifiers = new HashMap<>();
+        for (AccessModifier.ModifierEntry modifierEntry : this.accessModifiers) {
+            newModifiers.put(modifierEntry.getAccessModifier(), modifierEntry);
         }
 
-        for (Modifier.ModifierEntry modifierEntry : other.modifiers) {
-            newModifiers.put(modifierEntry.getModifier(), modifierEntry);
+        for (AccessModifier.ModifierEntry modifierEntry : other.accessModifiers) {
+            newModifiers.put(modifierEntry.getAccessModifier(), modifierEntry);
         }
 
         return new AccessTransformEntry(newAccessLevel, new ArrayList<>(newModifiers.values()), this.className,
@@ -207,7 +207,7 @@ public final class AccessTransformEntry {
             return false;
         if (accessLevel != that.accessLevel)
             return false;
-        if (!modifiers.equals(that.modifiers))
+        if (!accessModifiers.equals(that.accessModifiers))
             return false;
         if (!className.equals(that.className))
             return false;
@@ -217,7 +217,7 @@ public final class AccessTransformEntry {
     @Override
     public int hashCode() {
         int result = accessLevel.hashCode();
-        result = 31 * result + modifiers.hashCode();
+        result = 31 * result + accessModifiers.hashCode();
         result = 31 * result + className.hashCode();
         result = 31 * result + (descriptor != null ? descriptor.hashCode() : 0);
         result = 31 * result + (methodAt ? 1 : 0);
@@ -228,7 +228,7 @@ public final class AccessTransformEntry {
 
     @Override
     public String toString() {
-        return "AccessTransformEntry{accessLevel=" + accessLevel + ", modifiers=" + modifiers + ", className='"
+        return "AccessTransformEntry{accessLevel=" + accessLevel + ", accessModifiers=" + accessModifiers + ", className='"
                 + className + '\'' + ", descriptor='" + descriptor + '\'' + ", method=" + methodAt + ", classAt=" +
                 classAt + '}';
     }

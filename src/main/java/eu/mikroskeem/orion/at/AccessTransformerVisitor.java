@@ -1,7 +1,7 @@
 package eu.mikroskeem.orion.at;
 
 import eu.mikroskeem.orion.at.access.AccessLevel;
-import eu.mikroskeem.orion.at.access.Modifier;
+import eu.mikroskeem.orion.at.access.AccessModifier;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.objectweb.asm.ClassVisitor;
@@ -9,6 +9,7 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -169,8 +170,8 @@ final class AccessTransformerVisitor extends ClassVisitor {
             return original;
 
         int newAccess = overrideAccessLevel(original, atEntry.getAccessLevel());
-        for (Modifier.ModifierEntry entry : atEntry.getModifiers()) {
-            int opcode = entry.getModifier().getOpcode();
+        for (AccessModifier.ModifierEntry entry : atEntry.getAccessModifiers()) {
+            int opcode = entry.getAccessModifier().getOpcode();
             newAccess = entry.isRemove() ? newAccess & ~opcode : newAccess | opcode;
         }
 
@@ -186,25 +187,25 @@ final class AccessTransformerVisitor extends ClassVisitor {
      */
     private static int overrideAccessLevel(int accessLevel, AccessLevel newAccessLevel) {
         /* Do not allow downgrades */
-        if(java.lang.reflect.Modifier.isPublic(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PUBLIC.ordinal()) {
+        if(Modifier.isPublic(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PUBLIC.ordinal()) {
             if(newAccessLevel != AccessLevel.PUBLIC)
                 Logging.debug(AccessTransformerVisitor.class, () -> "Denying access level downgrade from PUBLIC to " + newAccessLevel.name());
             return accessLevel;
         }
 
-        if(java.lang.reflect.Modifier.isProtected(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PROTECTED.ordinal()) {
+        if(Modifier.isProtected(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PROTECTED.ordinal()) {
             if(newAccessLevel != AccessLevel.PROTECTED)
                 Logging.debug(AccessTransformerVisitor.class, () -> "Denying access level downgrade from PROTECTED to " + newAccessLevel.name());
             return accessLevel;
         }
 
-        if(java.lang.reflect.Modifier.isPrivate(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PRIVATE.ordinal()) {
+        if(Modifier.isPrivate(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PRIVATE.ordinal()) {
             if(newAccessLevel != AccessLevel.PRIVATE)
                 Logging.debug(AccessTransformerVisitor.class, () -> "Denying access level downgrade from PRIVATE to " + newAccessLevel.name());
             return accessLevel;
         }
 
-        if(!java.lang.reflect.Modifier.isPrivate(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PACKAGE_LOCAL.ordinal()) {
+        if(!Modifier.isPrivate(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PACKAGE_LOCAL.ordinal()) {
             if(newAccessLevel != AccessLevel.PACKAGE_LOCAL)
                 Logging.debug(AccessTransformerVisitor.class, () -> "Denying access level downgrade from PACKAGE_LOCAL to " + newAccessLevel.name());
             return accessLevel;
