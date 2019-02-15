@@ -58,7 +58,9 @@ public enum Modifier {
     public final static Map<String, Modifier> BY_NAME;
 
     static {
+        //noinspection MismatchedQueryAndUpdateOfCollection
         Map<Integer, Modifier> byOpcode;
+        //noinspection MismatchedQueryAndUpdateOfCollection
         Map<String, Modifier> byName;
         BY_OPCODE = Collections.unmodifiableMap((byOpcode = new HashMap<>(Modifier.values().length)));
         BY_NAME = Collections.unmodifiableMap((byName  = new HashMap<>(Modifier.values().length)));

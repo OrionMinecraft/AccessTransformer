@@ -86,7 +86,9 @@ public enum AccessLevel {
     }
 
     static {
+        //noinspection MismatchedQueryAndUpdateOfCollection
         Map<Integer, AccessLevel> byOpcode;
+        //noinspection MismatchedQueryAndUpdateOfCollection
         Map<String, AccessLevel> byName;
         BY_OPCODE = Collections.unmodifiableMap((byOpcode = new HashMap<>(AccessLevel.values().length)));
         BY_NAME = Collections.unmodifiableMap((byName  = new HashMap<>(AccessLevel.values().length)));
