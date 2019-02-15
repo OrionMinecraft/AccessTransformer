@@ -2,6 +2,7 @@ package eu.mikroskeem.orion.at;
 
 import eu.mikroskeem.orion.at.access.AccessLevel;
 import eu.mikroskeem.orion.at.access.Modifier;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * An access transforming visitor
+ * An access transforming class visitor
  *
  * @author Mark Vainomaa
  */
@@ -21,18 +22,17 @@ final class AccessTransformerVisitor extends ClassVisitor {
     private final List<AccessTransformEntry> accessTransforms;
     private Map<String, AccessTransformEntry> methodTransforms = new HashMap<>();
     private Map<String, AccessTransformEntry> fieldTransforms = new HashMap<>();
-    private String currentClass;
     private String currentClassRaw;
 
-    AccessTransformerVisitor(List<AccessTransformEntry> accessTransforms, ClassVisitor classVisitor) {
+    AccessTransformerVisitor(@NonNull List<AccessTransformEntry> accessTransforms, @NonNull ClassVisitor classVisitor) {
         super(Opcodes.ASM5, classVisitor);
         this.accessTransforms = accessTransforms;
     }
 
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-        currentClass = name.replace('/', '.');
         currentClassRaw = name;
+        String currentClass = name.replace('/', '.');
 
         /* Transform class access */
         AccessTransformEntry ate;
@@ -85,7 +85,7 @@ final class AccessTransformerVisitor extends ClassVisitor {
     }
 
     @Nullable
-    private AccessTransformEntry findClassAT(String className) {
+    private AccessTransformEntry findClassAT(@NonNull String className) {
         for(AccessTransformEntry ate: accessTransforms) {
             /* Skip non-class ATs */
             if(!ate.isClassAt())
@@ -100,12 +100,12 @@ final class AccessTransformerVisitor extends ClassVisitor {
     }
 
     @Nullable
-    private AccessTransformEntry findMethodAT(String methodName, String methodDesc) {
+    private AccessTransformEntry findMethodAT(@NonNull String methodName, @NonNull String methodDesc) {
         return applyWild(methodTransforms.get(methodName + methodDesc), methodTransforms.get("*()"));
     }
 
     @Nullable
-    private AccessTransformEntry findFieldAT(String fieldName) {
+    private AccessTransformEntry findFieldAT(@NonNull String fieldName) {
         return applyWild(fieldTransforms.get(fieldName), fieldTransforms.get("*"));
     }
 
@@ -141,7 +141,7 @@ final class AccessTransformerVisitor extends ClassVisitor {
     /**
      * Helper method to get new access modifier
      */
-    private static int getNewAccessModifier(int original, AccessTransformEntry atEntry) {
+    private static int getNewAccessModifier(int original, @NonNull AccessTransformEntry atEntry) {
         int newAccess = AccessLevel.overrideAccessLevel(original, atEntry.getAccessLevel());
         for (Modifier.ModifierEntry entry : atEntry.getModifiers()) {
             if(entry.isRemove()) {
