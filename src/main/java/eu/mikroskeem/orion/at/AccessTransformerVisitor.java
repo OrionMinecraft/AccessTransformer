@@ -22,7 +22,6 @@ final class AccessTransformerVisitor extends ClassVisitor {
     private final List<AccessTransformEntry> accessTransforms;
     private Map<String, AccessTransformEntry> methodTransforms = new HashMap<>();
     private Map<String, AccessTransformEntry> fieldTransforms = new HashMap<>();
-    private Map<String, AccessTransformEntry> innerClassTransforms = new HashMap<>();
     private String currentClassRaw;
 
     AccessTransformerVisitor(@NonNull List<AccessTransformEntry> accessTransforms, @NonNull ClassVisitor classVisitor) {
@@ -40,14 +39,12 @@ final class AccessTransformerVisitor extends ClassVisitor {
 
         /* Build method and field transformer maps */
         for (AccessTransformEntry accessTransform : accessTransforms) {
-            if(!accessTransform.getClassName().startsWith(currentClass))
+            if(!accessTransform.getClassName().equals(currentClass))
                 continue;
 
             if(accessTransform.isMethod()) {
                 methodTransforms.put(accessTransform.getDescriptor(), accessTransform);
-            } else if(accessTransform.isClassAt()) {
-                innerClassTransforms.put(accessTransform.getClassName(), accessTransform);
-            } else {
+            } else if(!accessTransform.isClassAt()) {
                 fieldTransforms.put(accessTransform.getDescriptor(), accessTransform);
             }
         }
@@ -58,7 +55,7 @@ final class AccessTransformerVisitor extends ClassVisitor {
     @Override
     public void visitInnerClass(String name, String outerName, String innerName, int access) {
         /* Transform inner class access */
-        int newAccess = replaceInnerClassAccess(access, name.replace('/', '.'));
+        int newAccess = replaceClassAccess(access, name.replace('/', '.'));
         super.visitInnerClass(name, outerName, innerName, newAccess);
     }
 
@@ -100,14 +97,6 @@ final class AccessTransformerVisitor extends ClassVisitor {
                 .orElse(null);
 
         return entry != null ? overrideAccessModifier(access, entry) : access;
-    }
-
-    private int replaceInnerClassAccess(int access, @NonNull String className) {
-        AccessTransformEntry entry;
-        if((entry = innerClassTransforms.get(className)) == null)
-            return access;
-
-        return overrideAccessModifier(access, entry);
     }
 
     private int replaceMethodAccess(int access, @NonNull String methodName, @NonNull String methodDesc) {
