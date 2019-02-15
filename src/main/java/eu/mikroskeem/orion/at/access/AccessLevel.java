@@ -61,31 +61,6 @@ public enum AccessLevel {
     /** Static list of opcode names mapped to enum keys */
     public final static Map<String, AccessLevel> BY_NAME;
 
-    /**
-     * Overrides class/method/field access level by {@link AccessLevel}
-     *
-     * @param accessLevel Original class/method/field access level
-     * @param newAccessLevel {@link AccessLevel} to apply on given class/method/field access level
-     * @return New class/method/field access level
-     */
-    public static int overrideAccessLevel(int accessLevel, AccessLevel newAccessLevel) {
-        /* Do not allow downgrades */
-        if(java.lang.reflect.Modifier.isPublic(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PUBLIC.ordinal())
-            return accessLevel;
-        if(java.lang.reflect.Modifier.isProtected(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PROTECTED.ordinal())
-            return accessLevel;
-        if(!java.lang.reflect.Modifier.isPrivate(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PACKAGE_LOCAL.ordinal())
-            return accessLevel;
-        if(java.lang.reflect.Modifier.isPrivate(accessLevel) && newAccessLevel.ordinal() <= AccessLevel.PRIVATE.ordinal())
-            return accessLevel;
-
-        /* Replace all access levels with desired one */
-        int mask = Opcodes.ACC_PUBLIC | Opcodes.ACC_PROTECTED | Opcodes.ACC_PRIVATE;
-        accessLevel &= ~mask;
-        accessLevel |= newAccessLevel.opcode;
-        return accessLevel;
-    }
-
     static {
         //noinspection MismatchedQueryAndUpdateOfCollection
         Map<Integer, AccessLevel> byOpcode;

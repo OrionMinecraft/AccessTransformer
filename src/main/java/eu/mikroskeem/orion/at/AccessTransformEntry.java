@@ -35,6 +35,7 @@ public final class AccessTransformEntry {
      * @param rawAtEntry Raw AT entry line
      */
     public AccessTransformEntry(@NonNull String rawAtEntry) {
+        Logging.trace(AccessTransformer.class, () -> "Parsing AT line '" + rawAtEntry + "'");
         String[] atEntry = rawAtEntry.split("\\s+");
         String[] modifiers = atEntry[0].split("(?=[-+])");
         classAt = atEntry.length == 2;
@@ -53,6 +54,7 @@ public final class AccessTransformEntry {
 
         /* If it is class AT, then return */
         if(classAt) {
+            Logging.trace(AccessTransformer.class, () -> "AT line '" + rawAtEntry + "' resulted with class AT");
             methodAt = false;
             fieldAt = false;
             return;
@@ -63,12 +65,14 @@ public final class AccessTransformEntry {
         if(start != -1) {
             int end = descriptor.indexOf(')', start);
             if(end != -1) {
+                Logging.trace(AccessTransformer.class, () -> "AT line '" + rawAtEntry + "' resulted with method AT");
                 methodAt = true;
                 fieldAt = false;
             } else {
                 throw new IllegalStateException("Invalid method AT entry: " + rawAtEntry);
             }
         } else {
+            Logging.trace(AccessTransformer.class, () -> "AT line '" + rawAtEntry + "' resulted with field AT");
             methodAt = false;
             fieldAt = true;
         }

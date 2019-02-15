@@ -7,6 +7,7 @@ import eu.mikroskeem.shuriken.reflect.ClassWrapper;
 import eu.mikroskeem.shuriken.reflect.FieldWrapper;
 import eu.mikroskeem.shuriken.reflect.Reflect;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.util.TraceClassVisitor;
@@ -26,6 +27,11 @@ import java.util.List;
  * @author Mark Vainomaa
  */
 public class AccessTransformerTest {
+    @BeforeAll
+    public static void setupLogger() {
+        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "TRACE");
+    }
+
     @Test
     @SuppressWarnings("ConstantConditions")
     public void testFieldAccessTransformer() throws Exception {
